@@ -1,6 +1,6 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 
-// Types
+//  Types
 export interface Product {
   id: string
   name: string
@@ -68,13 +68,14 @@ const GET_PRODUCTS_QUERY = `
   }
 `
 
-// Async thunk for fetching products
+// ❗ NOTE: While this asyncThunk works, it leads to a lot of boilerplate for something RTK Query handles automatically.
+// ✅ CONSIDER using `createApi` with Apollo Client for reusable, scalable, and cache-aware data fetching.
 export const fetchProducts = createAsyncThunk(
   'products/fetchProducts',
   async ({ page, after }: { page: number; after?: string | null }) => {
     try {
       console.log(`Fetching page ${page} with cursor:`, after)
-      
+
       const response = await fetch('https://saleor.signusk.com/graphql/', {
         method: 'POST',
         headers: {
@@ -94,13 +95,13 @@ export const fetchProducts = createAsyncThunk(
       }
 
       const result = await response.json()
-      
+
       if (result.errors) {
         throw new Error(result.errors[0]?.message || 'GraphQL error occurred')
       }
 
       const data = result.data?.products
-      
+
       if (!data) {
         throw new Error('No products data received')
       }
@@ -160,6 +161,9 @@ const productsSlice = createSlice({
         const { page, products, hasNextPage, endCursor } = action.payload
         
         // Store products for this page
+        // 🚨 CODE REVIEW:
+        // This logic works fine but is verbose.
+        // With RTK Query, this would be automatically managed with built-in caching, pagination, and selectors.
         state.itemsByPage[page] = products
         
         // Store the END cursor for this page (this will be used as the 'after' for the next page)
@@ -178,6 +182,25 @@ const productsSlice = createSlice({
       })
   },
 })
+
+// ⚠️ CODE REVIEW — Recommendation to use `createApi` (RTK Query):
+// 🔁 Auto-caching per request (based on `page`, `filter`, etc.)
+// 🔧 Auto-generated React hooks: `useGetProductsQuery()`
+// 🔄 Automatic refetch when args change or tags are invalidated
+// 💡 Less boilerplate and cleaner architecture
+//
+// ✅ Example using `createApi`:
+// const { data } = useGetProductsQuery({ first: 10 }) // fetches and caches
+// const { data } = useGetProductsQuery({ first: 10 }) // returns cached
+// const { data } = useGetProductsQuery({ first: 20 }) // fetches new set
+
+// ✅ Also, consider using a reusable Apollo Client:
+// import { ApolloClient, InMemoryCache } from '@apollo/client'
+// export const client = new ApolloClient({
+//   uri: 'https://saleor.signusk.com/graphql/',
+//   cache: new InMemoryCache(),
+// })
+// Then integrate this client in your RTK Query baseQuery
 
 export const { clearError, resetProducts } = productsSlice.actions
 export default productsSlice.reducer
