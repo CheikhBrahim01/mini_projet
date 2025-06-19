@@ -1,10 +1,13 @@
 import { Stack } from 'expo-router'
 import { Provider } from 'react-redux'
 import { store } from '../store'
+import { ApolloProvider } from '@apollo/client'
+import { client } from '@/src/apolloClient'
 
 export default function RootLayout() {
   return (
     <Provider store={store}>
+      <ApolloProvider client={client}>
       <Stack>
         <Stack.Screen 
           name="index" 
@@ -33,6 +36,7 @@ export default function RootLayout() {
           }} 
         />
       </Stack>
+      </ApolloProvider>
     </Provider>
   )
 }

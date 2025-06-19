@@ -1,4 +1,3 @@
-//This file is used to manage the state of products in the application with Redux Toolkit.
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 
 // Types
@@ -15,7 +14,7 @@ export interface Product {
 
 interface ProductsState {
   itemsByPage: Record<number, Product[]>
-  cursorsByPage: Record<number, string | null>
+  cursorsByPage: Record<number, string | null> // This stores the END cursor for each page
   hasNextPageByPage: Record<number, boolean>
   loading: boolean
   error: string | null
@@ -74,6 +73,8 @@ export const fetchProducts = createAsyncThunk(
   'products/fetchProducts',
   async ({ page, after }: { page: number; after?: string | null }) => {
     try {
+      console.log(`Fetching page ${page} with cursor:`, after)
+      
       const response = await fetch('https://saleor.signusk.com/graphql/', {
         method: 'POST',
         headers: {
@@ -116,14 +117,18 @@ export const fetchProducts = createAsyncThunk(
         category: edge.node.category?.name || 'Uncategorized',
       }))
 
+      console.log(`Fetched ${products.length} products for page ${page}`)
+      console.log('Page info:', data.pageInfo)
+
       return {
         page,
         products,
         hasNextPage: data.pageInfo.hasNextPage,
-        cursor: data.pageInfo.endCursor,
+        endCursor: data.pageInfo.endCursor,
         startCursor: data.pageInfo.startCursor,
       }
     } catch (error) {
+      console.error('Error fetching products:', error)
       throw new Error(error instanceof Error ? error.message : 'An error occurred while fetching products')
     }
   }
@@ -152,16 +157,20 @@ const productsSlice = createSlice({
       })
       .addCase(fetchProducts.fulfilled, (state, action) => {
         state.loading = false
-        const { page, products, hasNextPage, cursor } = action.payload
+        const { page, products, hasNextPage, endCursor } = action.payload
         
         // Store products for this page
         state.itemsByPage[page] = products
         
-        // Store cursor for next page
-        state.cursorsByPage[page] = cursor
+        // Store the END cursor for this page (this will be used as the 'after' for the next page)
+        state.cursorsByPage[page] = endCursor
         
         // Store hasNextPage info
         state.hasNextPageByPage[page] = hasNextPage
+        
+        console.log(`Stored page ${page} with ${products.length} products`)
+        console.log(`End cursor for page ${page}:`, endCursor)
+        console.log(`Has next page:`, hasNextPage)
       })
       .addCase(fetchProducts.rejected, (state, action) => {
         state.loading = false
