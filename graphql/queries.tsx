@@ -1,13 +1,17 @@
 import { gql } from '@apollo/client'
 
 export const GET_PRODUCTS = gql`
-  query GetProducts($first: Int!, $after: String) {
-    products(first: $first, after: $after) {
+  query GetProducts($first: Int!, $after: String, $languageCode: LanguageCodeEnum!) {
+    products(first: $first, after: $after, channel: "default-channel") {
       edges {
         node {
           id
           name
           description
+          translation(languageCode: $languageCode) {
+            name
+            description
+          }
           pricing {
             priceRange {
               start {
@@ -24,6 +28,9 @@ export const GET_PRODUCTS = gql`
           }
           category {
             name
+            translation(languageCode: $languageCode) {
+              name
+            }
           }
         }
         cursor

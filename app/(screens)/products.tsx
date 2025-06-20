@@ -1,58 +1,62 @@
-import React, { useEffect, useState, useCallback } from "react";
+import type { RootState } from "@/store";
+import { useAppDispatch } from "@/store/hooks";
+import type { Product } from "@/store/productsSlice";
+import { clearError, fetchProducts, resetProducts } from "@/store/productsSlice";
+import { logout, selectIsLoggedIn } from "@/store/services/auth-service";
+import { selectLanguage } from "@/store/services/lang-slice";
+import { router } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  FlatList,
-  Button,
   ActivityIndicator,
-  StyleSheet,
   Alert,
+  Button,
+  FlatList,
   Image,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { useSelector } from "react-redux";
-import { fetchProducts, clearError } from "@/store/productsSlice";
-import { useAppDispatch } from "@/store/hooks";
-import { logout, selectIsLoggedIn } from "@/store/services/auth-service";
-import { router } from "expo-router";
-import type { AppDispatch, RootState } from "@/store";
-import type { Product } from "@/store/productsSlice";
 
-export default function ProductsScreen() {
+function ProductsScreen() {
   const dispatch = useAppDispatch();
   const [page, setPage] = useState(1);
 
-  const {
-    itemsByPage,
-    cursorsByPage,
-    hasNextPageByPage,
-    loading,
-    error,
-  } = useSelector((state: RootState) => state.products);
+  const { itemsByPage, cursorsByPage, hasNextPageByPage, loading, error } =
+    useSelector((state: RootState) => state.products);
 
   const isLoggedIn = useSelector(selectIsLoggedIn);
+  const language = useSelector(selectLanguage);
   const items = itemsByPage[page] || [];
   const hasNextPage = hasNextPageByPage[page] ?? true;
 
-  // --- Guards & Effects ---
+  // Redirect if not logged in
   useEffect(() => {
     if (!isLoggedIn) router.replace("/(auth-pages)/sign-in-page");
   }, [isLoggedIn]);
 
+  // Re-fetch products when language changes
+  useEffect(() => {
+    dispatch(resetProducts());
+    setPage(1);
+  }, [language]);
+
+  // Fetch products when page changes
   useEffect(() => {
     if (!itemsByPage[page] && !loading) {
       dispatch(fetchProducts({ page, after: getCursor(page) }));
     }
-  }, [page, loading]);
+  }, [page, loading, dispatch, itemsByPage, language]);
 
+  // Show error alert
   useEffect(() => {
     if (error) {
       Alert.alert("Erreur", error, [
         { text: "OK", onPress: () => dispatch(clearError()) },
       ]);
     }
-  }, [error]);
+  }, [error, dispatch]);
 
-  // --- Helpers ---
   const getCursor = (page: number) =>
     page === 1 ? null : cursorsByPage[page - 1] || null;
 
@@ -61,13 +65,9 @@ export default function ProductsScreen() {
     router.replace("/");
   };
 
-  const goToNextPage = () =>
-    hasNextPage && !loading && setPage((p) => p + 1);
+  const goToNextPage = () => hasNextPage && !loading && setPage((p) => p + 1);
+  const goToPreviousPage = () => page > 1 && setPage((p) => p - 1);
 
-  const goToPreviousPage = () =>
-    page > 1 && setPage((p) => p - 1);
-
-  // --- Renderers ---
   const renderProduct = ({ item }: { item: Product }) => (
     <View style={styles.productItem}>
       <View style={styles.productHeader}>
@@ -84,7 +84,7 @@ export default function ProductsScreen() {
         )}
         <View style={styles.productInfo}>
           <Text style={styles.productName} numberOfLines={2}>
-            {item.name}
+            {item.translation?.name || item.name || "No Name"}
           </Text>
           <Text style={styles.productCategory}>{item.category}</Text>
           <Text style={styles.productPrice}>
@@ -95,21 +95,29 @@ export default function ProductsScreen() {
         </View>
       </View>
       <Text style={styles.productDescription} numberOfLines={3}>
-        {item.description}
+        {item.translation?.description || item.description || "No Description"}
       </Text>
     </View>
   );
 
   const renderPagination = () => (
     <View style={styles.paginationContainer}>
-      <Button title="← Précédent" onPress={goToPreviousPage} disabled={page === 1} />
+      <Button
+        title="← Précédent"
+        onPress={goToPreviousPage}
+        disabled={page === 1}
+      />
       <View style={styles.pageInfo}>
         <Text style={styles.pageText}>Page {page}</Text>
         <Text style={styles.itemsText}>
           {items.length} produit{items.length > 1 ? "s" : ""}
         </Text>
       </View>
-      <Button title="Suivant →" onPress={goToNextPage} disabled={!hasNextPage || loading} />
+      <Button
+        title="Suivant →"
+        onPress={goToNextPage}
+        disabled={!hasNextPage || loading}
+      />
     </View>
   );
 
@@ -131,7 +139,12 @@ export default function ProductsScreen() {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.errorText}>Erreur lors du chargement</Text>
-        <Button title="Réessayer" onPress={() => dispatch(fetchProducts({ page, after: getCursor(page) }))} />
+        <Button
+          title="Réessayer"
+          onPress={() =>
+            dispatch(fetchProducts({ page, after: getCursor(page) }))
+          }
+        />
       </View>
     );
   }
@@ -157,6 +170,8 @@ export default function ProductsScreen() {
     </View>
   );
 }
+
+export default ProductsScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f5f5f5" },
@@ -218,8 +233,18 @@ const styles = StyleSheet.create({
   pageInfo: { alignItems: "center" },
   pageText: { fontSize: 16, fontWeight: "bold", color: "#333" },
   itemsText: { fontSize: 12, color: "#666", marginTop: 2 },
-  centerContainer: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
   loadingText: { marginTop: 10, fontSize: 14, color: "#666" },
   emptyText: { textAlign: "center", marginTop: 20, color: "#999" },
-  errorText: { fontSize: 16, color: "#ff3333", textAlign: "center", marginBottom: 20 },
+  errorText: {
+    fontSize: 16,
+    color: "#ff3333",
+    textAlign: "center",
+    marginBottom: 20,
+  },
 });

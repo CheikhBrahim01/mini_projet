@@ -4,13 +4,19 @@ import { store, persistor } from '../store';
 import { ApolloProvider } from '@apollo/client';
 import { client } from '@/src/apolloClient';
 import { PersistGate } from 'redux-persist/integration/react';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 
 export default function RootLayout() {
   return (
-    
     <Provider store={store}>
-      <PersistGate loading={<ActivityIndicator size="large" />} persistor={persistor}>
+      <PersistGate 
+        loading={
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#007AFF" />
+          </View>
+        } 
+        persistor={persistor}
+      >
         <ApolloProvider client={client}>
           <Stack>
             <Stack.Screen
@@ -27,9 +33,22 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen
-              name="products"
+              name="(screens)/products"
               options={{
                 title: 'Produits',
+                headerStyle: {
+                  backgroundColor: '#007AFF',
+                },
+                headerTintColor: '#fff',
+                headerTitleStyle: {
+                  fontWeight: 'bold',
+                },
+              }}
+            />
+            <Stack.Screen
+              name="(auth-pages)/sign-in-page"
+              options={{
+                title: 'Connexion',
                 headerStyle: {
                   backgroundColor: '#007AFF',
                 },

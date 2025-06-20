@@ -1,7 +1,7 @@
 import { RootState } from "@/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { Buffer } from "buffer";
+import 'react-native-url-polyfill/auto';
 import {
   AuthRequest,
   AuthSessionResult,

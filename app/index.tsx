@@ -5,10 +5,13 @@ import { useSelector } from "react-redux";
 import { selectIsLoggedIn } from "@/store/services/auth-service";
 import { useTranslation } from "react-i18next";
 import i18n from "@/src/i18n/i18n";
+import { useAppDispatch } from "@/store/hooks"; // Add this import
+import { setLanguage } from "@/store/services/lang-slice"; // Add this import
 
 export default function Home() {
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const { t } = useTranslation();
+  const dispatch = useAppDispatch(); // Add this
 
   const handleViewProducts = () => {
     if (isLoggedIn) {
@@ -19,7 +22,9 @@ export default function Home() {
   };
 
   const handleChangeLanguage = (lang: "en" | "fr" | "ar") => {
+    // Update both i18next AND Redux store
     i18n.changeLanguage(lang);
+    dispatch(setLanguage(lang)); // Add this line
   };
 
   return (
@@ -65,3 +70,5 @@ const styles = StyleSheet.create({
     width: "60%",
   },
 });
+
+

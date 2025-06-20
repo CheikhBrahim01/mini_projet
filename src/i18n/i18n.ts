@@ -8,13 +8,16 @@ const resources = {
   ar: { translation: require('./locales/ar.json') },
 };
 
+// Get device language and validate it
 const deviceLanguage = Localization.locale?.split('-')[0] || 'en';
+const supportedLanguages = ['en', 'fr', 'ar'];
+const initialLanguage = supportedLanguages.includes(deviceLanguage) ? deviceLanguage : 'en';
 
 i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: deviceLanguage,
+    lng: initialLanguage,
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false,
