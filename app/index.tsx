@@ -7,6 +7,8 @@ import { useTranslation } from "react-i18next";
 import i18n from "@/src/i18n/i18n";
 import { useAppDispatch } from "@/store/hooks"; // Add this import
 import { setLanguage } from "@/store/services/lang-slice"; // Add this import
+import CameraPicker from "@/components/CameraPicker"; // Adjust if your path is different
+import MapLocation from "@/components/MapLocation";
 
 export default function Home() {
   const isLoggedIn = useSelector(selectIsLoggedIn);
@@ -41,7 +43,12 @@ export default function Home() {
         <Button title="FR" onPress={() => handleChangeLanguage("fr")} />
         <Button title="AR" onPress={() => handleChangeLanguage("ar")} />
       </View>
+
+      <CameraPicker />
+
+      <MapLocation />
     </View>
+
   );
 }
 
